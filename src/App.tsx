@@ -15,12 +15,18 @@ import {
 import { playPingSound, playMessageSound } from './utils/sound';
 import { BootScreen } from './components/BootScreen';
 import { Header } from './components/Header';
-import { FooterBar } from './components/FooterBar';
 import { ContactsScreen } from './components/ContactsScreen';
 import { ChatScreen } from './components/ChatScreen';
 import { GroupChatScreen } from './components/GroupChatScreen';
 import { GlobalChatScreen } from './components/GlobalChatScreen';
 import { showWebNotification, startTitleBlink, requestNotificationPermission } from './utils/webNotification';
+import {
+  sendFirebaseDirectMessage,
+  sendFirebaseGroupMessage,
+  listenFirebaseInbox,
+  sendFirebaseTyping,
+  listenFirebaseTyping,
+} from './utils/firebaseDualPipe';
 import { VoiceCallModal } from './components/VoiceCallModal';
 import { MaintenanceOverlay } from './components/MaintenanceOverlay';
 import { Toast } from './components/Toast';
@@ -104,6 +110,7 @@ export default function App() {
   const [mqttStatus, setMqttStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [mqttStatusText, setMqttStatusText] = useState<string>('Connecting WSS...');
   const mqttClientRef = useRef<MqttClient | null>(null);
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
 
   // Contacts, Groups & Active Conversation
   const [contacts, setContacts] = useState<Contact[]>(() => {
@@ -402,9 +409,24 @@ export default function App() {
     [pushLog, showToast]
   );
 
-  // Incoming MQTT Message Handler
+  // Incoming Dual-Pipe Message Handler (MQTT + Firebase)
   const handleIncomingMessage = useCallback(
     (data: any) => {
+      if (!data || !data.type) return;
+
+      // Deduplicate across dual pipe
+      if (data.sender && data.timestamp) {
+        const dedupeKey = `${data.sender}_${data.timestamp}_${data.type}_${data.text || ''}`;
+        if (processedMessageIdsRef.current.has(dedupeKey)) {
+          return;
+        }
+        processedMessageIdsRef.current.add(dedupeKey);
+        if (processedMessageIdsRef.current.size > 2500) {
+          const keys = Array.from(processedMessageIdsRef.current);
+          keys.slice(0, 500).forEach((k) => processedMessageIdsRef.current.delete(k));
+        }
+      }
+
       const now = Date.now();
       pushLog(`INBOX [${data.type}] from ${data.sender}`);
 
@@ -623,11 +645,20 @@ export default function App() {
     ]
   );
 
-  // Incoming Group MQTT Message Handler
+  // Incoming Group Dual-Pipe Message Handler (MQTT + Firebase)
   const handleIncomingGroupMessage = useCallback(
     (topic: string, data: any) => {
+      if (!data || !data.type) return;
       const groupId = data.groupId || topic.split('/')[2];
       if (!groupId) return;
+
+      if (data.sender && data.timestamp) {
+        const dedupeKey = `group_${groupId}_${data.sender}_${data.timestamp}_${data.text || ''}`;
+        if (processedMessageIdsRef.current.has(dedupeKey)) {
+          return;
+        }
+        processedMessageIdsRef.current.add(dedupeKey);
+      }
 
       pushLog(`GROUP [${data.type}] in ${groupId} from ${data.sender}`);
 
@@ -815,6 +846,41 @@ export default function App() {
       });
     }
   }, [groups]);
+
+  // Firebase Realtime Database Dual-Pipe Background Sync Listener
+  useEffect(() => {
+    if (!myPin) return;
+
+    // Listen to personal cloud mailbox (pulls messages when reopening tab/app)
+    const unsubInbox = listenFirebaseInbox(myPin, (data) => {
+      if (!data) return;
+      if (
+        data.type === 'GROUP_CHAT' ||
+        data.type === 'GROUP_PING' ||
+        data.type === 'GROUP_INVITE' ||
+        data.type === 'GROUP_REACTION'
+      ) {
+        const gId = data.groupId || (data.group && data.group.id);
+        if (gId) {
+          callbacksRef.current.handleIncomingGroupMessage(`chatzz/group/${gId}/room`, data);
+        }
+      } else {
+        callbacksRef.current.handleIncomingMessage(data);
+      }
+    });
+
+    // Listen to partner typing over Firebase Realtime Database
+    const unsubTyping = listenFirebaseTyping(myPin, (senderPin, isTyping) => {
+      if (stateRef.current.activeContactPin === senderPin) {
+        setIsPartnerTyping(isTyping);
+      }
+    });
+
+    return () => {
+      unsubInbox();
+      unsubTyping();
+    };
+  }, [myPin]);
 
   // Initialize Persistent MQTT (connects once on mount and stays active)
   useEffect(() => {
@@ -1206,6 +1272,14 @@ export default function App() {
         }
       });
     }
+
+    // Dual-pipe Firebase cloud delivery for group messages
+    sendFirebaseGroupMessage(activeGroup.id, payload);
+    activeGroup.members.forEach((memberPin) => {
+      if (memberPin !== myPin) {
+        sendFirebaseDirectMessage(memberPin, payload);
+      }
+    });
   };
 
   const handleSendGroupPing = () => {
@@ -1256,6 +1330,14 @@ export default function App() {
         }
       });
     }
+
+    // Dual-pipe Firebase cloud delivery for group pings
+    sendFirebaseGroupMessage(activeGroup.id, payload);
+    activeGroup.members.forEach((memberPin) => {
+      if (memberPin !== myPin) {
+        sendFirebaseDirectMessage(memberPin, payload);
+      }
+    });
 
     playPingSound();
     triggerScreenShake();
@@ -1542,6 +1624,11 @@ export default function App() {
       showToast('Gagal', 'Kontak diblokir (NS).', true);
     }
 
+    if (!isBlocked) {
+      // Dual-pipe Firebase cloud delivery (reliably stored and pushed even if receiver's tab is closed)
+      sendFirebaseDirectMessage(activeContactPin, payload);
+    }
+
     if (targetContact) {
       const updated = contacts.map((c) =>
         c.pin === activeContactPin ? { ...c, lastActivity: now } : c
@@ -1588,18 +1675,21 @@ export default function App() {
     showToast('Pesan Dihapus', 'Pesan dihapus dari riwayat lokal.');
   };
 
-  // Send typing status
+  // Send typing status (Dual pipe: MQTT + Firebase)
   const handleSendTypingStatus = (isTyping: boolean) => {
-    if (!activeContactPin || !mqttClientRef.current?.connected) return;
-    mqttClientRef.current.publish(
-      `chatzz/user/${activeContactPin}/inbox`,
-      JSON.stringify({
-        type: 'TYPING',
-        sender: myPin,
-        isTyping,
-      }),
-      { qos: 0 }
-    );
+    if (!activeContactPin) return;
+    if (mqttClientRef.current?.connected) {
+      mqttClientRef.current.publish(
+        `chatzz/user/${activeContactPin}/inbox`,
+        JSON.stringify({
+          type: 'TYPING',
+          sender: myPin,
+          isTyping,
+        }),
+        { qos: 0 }
+      );
+    }
+    sendFirebaseTyping(activeContactPin, myPin, isTyping);
   };
 
   // Send Broadcast (BC)
@@ -1651,6 +1741,9 @@ export default function App() {
           { qos: 1, retain: true }
         );
       }
+
+      // Dual pipe Firebase cloud delivery
+      sendFirebaseDirectMessage(contact.pin, payload);
     });
 
     if (activeContactPin) {
@@ -1772,6 +1865,9 @@ export default function App() {
         { qos: 1, retain: true }
       );
     }
+
+    // Dual-pipe Firebase cloud delivery
+    sendFirebaseDirectMessage(activeContactPin, payload);
 
     playPingSound();
     triggerScreenShake();
@@ -2128,13 +2224,6 @@ export default function App() {
           {/* Screen: Global Chat (Closed) */}
           {isGlobalOpen && <GlobalChatScreen onClose={() => setIsGlobalOpen(false)} />}
         </div>
-
-        {/* Footer Status Bar */}
-        <FooterBar
-          status={mqttStatus}
-          statusText={mqttStatusText}
-          onOpenDebug={() => setIsDebugModalOpen(true)}
-        />
       </div>
 
       {/* Voice Call Screen Modal */}
@@ -2198,6 +2287,7 @@ export default function App() {
         onOpenStats={() => setIsStatsModalOpen(true)}
         onExportBackup={handleExportBackup}
         onClearCache={handleClearCache}
+        onOpenDebug={() => setIsDebugModalOpen(true)}
       />
 
       <DebugModal

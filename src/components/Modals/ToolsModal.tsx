@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppTheme } from '../../types';
+import { requestNotificationPermission, showWebNotification } from '../../utils/webNotification';
+import { playPingSound } from '../../utils/sound';
 
 interface Props {
   isOpen: boolean;
@@ -17,6 +19,7 @@ interface Props {
   onOpenStats: () => void;
   onExportBackup: () => void;
   onClearCache: () => void;
+  onOpenDebug?: () => void;
 }
 
 export const ToolsModal: React.FC<Props> = ({
@@ -35,8 +38,28 @@ export const ToolsModal: React.FC<Props> = ({
   onOpenStats,
   onExportBackup,
   onClearCache,
+  onOpenDebug,
 }) => {
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleRequestNotif = async () => {
+    const granted = await requestNotificationPermission();
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
+    if (granted) {
+      playPingSound();
+      showWebNotification('Chatzz Messenger', 'Notifikasi berhasil diaktifkan! Anda akan menerima peringatan saat ada chat baru.');
+    }
+  };
 
   const themes: { id: AppTheme; label: string; color: string }[] = [
     { id: 'aero-blue', label: 'Aero Blue (Klasik)', color: 'bg-blue-500' },
@@ -59,6 +82,61 @@ export const ToolsModal: React.FC<Props> = ({
             className="text-slate-400 hover:text-slate-700 text-xs font-bold"
           >
             Tutup &times;
+          </button>
+        </div>
+
+        {/* Web Notification Permission Card */}
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-3 rounded-2xl border border-blue-200 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs shadow-sm">
+                <i className="fa-solid fa-bell"></i>
+              </div>
+              <div>
+                <div className="text-[11px] font-bold text-slate-800 leading-tight">
+                  Izin Notifikasi Web
+                </div>
+                <div className="text-[9px] text-slate-500">
+                  {notifPermission === 'granted'
+                    ? 'Status: Aktif & Diizinkan'
+                    : notifPermission === 'denied'
+                    ? 'Status: Diblokir oleh browser'
+                    : 'Status: Belum diaktifkan'}
+                </div>
+              </div>
+            </div>
+            <span
+              className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                notifPermission === 'granted'
+                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                  : notifPermission === 'denied'
+                  ? 'bg-red-100 text-red-700 border border-red-300'
+                  : 'bg-amber-100 text-amber-700 border border-amber-300'
+              }`}
+            >
+              {notifPermission === 'granted'
+                ? 'Aktif'
+                : notifPermission === 'denied'
+                ? 'Ditolak'
+                : 'Mati'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRequestNotif}
+            className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm ${
+              notifPermission === 'granted'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+          >
+            <i className={`fa-solid ${notifPermission === 'granted' ? 'fa-bell-ring' : 'fa-check'}`}></i>
+            <span>
+              {notifPermission === 'granted'
+                ? 'Test Bunyi & Notifikasi Web'
+                : 'Izinkan Notifikasi Sekarang'}
+            </span>
           </button>
         </div>
 
@@ -223,20 +301,34 @@ export const ToolsModal: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Cache & Backup */}
-        <div className="pt-2 border-t flex space-x-2">
-          <button
-            onClick={onExportBackup}
-            className="flex-1 btn-jelly py-2 rounded-xl text-xs font-bold"
-          >
-            Export Backup JSON
-          </button>
-          <button
-            onClick={onClearCache}
-            className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-xl text-xs font-bold"
-          >
-            Bersihkan Cache
-          </button>
+        {/* Cache & Backup & Debug */}
+        <div className="pt-2 border-t flex flex-col gap-2">
+          <div className="flex space-x-2">
+            <button
+              onClick={onExportBackup}
+              className="flex-1 btn-jelly py-2 rounded-xl text-xs font-bold"
+            >
+              Export Backup JSON
+            </button>
+            <button
+              onClick={onClearCache}
+              className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-xl text-xs font-bold"
+            >
+              Bersihkan Cache
+            </button>
+          </div>
+          {onOpenDebug && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenDebug();
+              }}
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5"
+            >
+              <i className="fa-solid fa-terminal text-[9px]"></i>
+              <span>Buka Log Konsol / Hook Center</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

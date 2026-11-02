@@ -356,9 +356,17 @@ export const ChatScreen: React.FC<Props> = ({
                 </span>
               )}
             </h3>
-            <p className="text-[9px] text-yellow-300 font-mono mt-0.5 font-bold">
-              PIN: {contact.pin}
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[9px] text-yellow-300 font-mono font-bold">
+                PIN: {contact.pin}
+              </span>
+              {isPartnerTyping && (
+                <span className="text-[9px] text-emerald-300 font-sans font-semibold flex items-center gap-1 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  sedang mengetik...
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -776,6 +784,25 @@ export const ChatScreen: React.FC<Props> = ({
           setInputText((prev) => prev + emoticon);
         }}
       />
+
+      {/* Partner is typing label banner */}
+      {isPartnerTyping && (
+        <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50/95 via-sky-50/95 to-blue-50/95 border-t border-blue-200/80 text-blue-800 text-[11px] font-medium flex items-center justify-between shadow-sm animate-fadeIn select-none">
+          <div className="flex items-center gap-2">
+            <span className="flex gap-1 items-center py-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:0.15s]"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:0.3s]"></span>
+            </span>
+            <span className="font-semibold italic text-blue-900">
+              {displayName} sedang mengetik...
+            </span>
+          </div>
+          <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-mono font-bold tracking-tight">
+            sedang mengetik
+          </span>
+        </div>
+      )}
 
       {/* Input Action Bar */}
       <div className="p-2 bg-white/90 border-t border-slate-300 flex items-center space-x-1.5 relative select-none">

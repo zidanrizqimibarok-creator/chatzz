@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Presence } from '../../types';
+import { requestNotificationPermission, showWebNotification } from '../../utils/webNotification';
 
 interface Props {
   isOpen: boolean;
@@ -21,17 +22,29 @@ export const ProfileModal: React.FC<Props> = ({
   const [name, setName] = useState(currentName);
   const [status, setStatus] = useState(currentStatus);
   const [presence, setPresence] = useState<Presence>(currentPresence);
+  const [notifGranted, setNotifGranted] = useState(false);
 
   useEffect(() => {
     setName(currentName);
     setStatus(currentStatus);
     setPresence(currentPresence);
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifGranted(Notification.permission === 'granted');
+    }
   }, [currentName, currentStatus, currentPresence, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
     onSave(name.trim() || currentName, status.trim(), presence);
+  };
+
+  const handleToggleNotif = async () => {
+    const granted = await requestNotificationPermission();
+    setNotifGranted(granted);
+    if (granted) {
+      showWebNotification('Chatzz Messenger', 'Izin notifikasi chat aktif!');
+    }
   };
 
   return (
@@ -76,6 +89,27 @@ export const ProfileModal: React.FC<Props> = ({
               <option value="away">Away</option>
               <option value="busy">Busy</option>
             </select>
+          </div>
+          <div className="pt-1 border-t">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-700 block">Notifikasi Web</span>
+                <span className="text-[9px] text-slate-500">
+                  {notifGranted ? 'Peringatan aktif' : 'Izin belum aktif'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleNotif}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                  notifGranted
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {notifGranted ? 'Aktif ✓' : 'Izinkan'}
+              </button>
+            </div>
           </div>
         </div>
         <div className="flex space-x-2">
