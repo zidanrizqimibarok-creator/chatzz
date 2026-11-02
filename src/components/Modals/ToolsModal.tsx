@@ -7,8 +7,10 @@ interface Props {
   isOpen: boolean;
   currentTheme: AppTheme;
   hasPasscode: boolean;
+  shareOnlineStatus?: boolean;
   onClose: () => void;
   onSelectTheme: (theme: AppTheme) => void;
+  onToggleShareOnlineStatus?: (val: boolean) => void;
   onOpenBroadcast: () => void;
   onOpenQr: () => void;
   onOpenGroupChat: () => void;
@@ -26,8 +28,10 @@ export const ToolsModal: React.FC<Props> = ({
   isOpen,
   currentTheme,
   hasPasscode,
+  shareOnlineStatus = true,
   onClose,
   onSelectTheme,
+  onToggleShareOnlineStatus,
   onOpenBroadcast,
   onOpenQr,
   onOpenGroupChat,
@@ -57,104 +61,55 @@ export const ToolsModal: React.FC<Props> = ({
     }
     if (granted) {
       playPingSound();
-      showWebNotification('Chatzz Messenger', 'Notifikasi berhasil diaktifkan! Anda akan menerima peringatan saat ada chat baru.');
+      showWebNotification('Chatzz Messenger', 'Notifikasi berhasil diaktifkan! Anda akan menerima peringatan saat ada pesan baru.');
     }
   };
 
-  const themes: { id: AppTheme; label: string; color: string }[] = [
-    { id: 'aero-blue', label: 'Aero Blue (Klasik)', color: 'bg-blue-500' },
-    { id: 'blackberry-purple', label: 'Berry Purple', color: 'bg-purple-600' },
-    { id: 'matrix-emerald', label: 'Matrix Emerald', color: 'bg-emerald-600' },
-    { id: 'crimson-ruby', label: 'Crimson Ruby', color: 'bg-rose-600' },
-    { id: 'obsidian-dark', label: 'Obsidian Dark', color: 'bg-slate-800' },
+  const modernThemes: { id: AppTheme; label: string; desc: string; color: string }[] = [
+    { id: 'telegram-blue', label: 'Telegram Day', desc: 'Biru langit modern & elegan', color: 'bg-sky-500' },
+    { id: 'whatsapp-emerald', label: 'WhatsApp Emerald', desc: 'Hijau khas WhatsApp', color: 'bg-emerald-600' },
+    { id: 'telegram-dark', label: 'Telegram Midnight', desc: 'Mode gelap premium', color: 'bg-slate-800' },
+    { id: 'ios-slate', label: 'Apple Messages', desc: 'Abu-abu terang minimalis', color: 'bg-blue-600' },
+    { id: 'sakura-blush', label: 'Lavender Rose', desc: 'Pastel lembut kontemporer', color: 'bg-rose-500' },
   ];
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-sm p-4 shadow-2xl border border-white space-y-3 max-h-[88vh] overflow-y-auto">
-        <div className="flex justify-between items-center border-b pb-2">
-          <h3 className="font-bold text-xs text-slate-800 flex items-center">
-            <i className="fa-solid fa-toolbox text-blue-600 mr-1.5"></i>
-            Pusat Fitur & Pengaturan Chatzz
-          </h3>
+      <div className="bg-white rounded-3xl w-full max-w-sm p-5 shadow-2xl border border-slate-100 space-y-4 max-h-[88vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
+              <i className="fa-solid fa-gear"></i>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-800 leading-tight">Pengaturan & Fitur</h3>
+              <p className="text-[11px] text-slate-500">Kustomisasi tema, privasi, dan obrolan</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+            className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold transition"
           >
-            Tutup &times;
+            &times;
           </button>
         </div>
 
-        {/* Web Notification Permission Card */}
-        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-3 rounded-2xl border border-blue-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs shadow-sm">
-                <i className="fa-solid fa-bell"></i>
-              </div>
-              <div>
-                <div className="text-[11px] font-bold text-slate-800 leading-tight">
-                  Izin Notifikasi Web
-                </div>
-                <div className="text-[9px] text-slate-500">
-                  {notifPermission === 'granted'
-                    ? 'Status: Aktif & Diizinkan'
-                    : notifPermission === 'denied'
-                    ? 'Status: Diblokir oleh browser'
-                    : 'Status: Belum diaktifkan'}
-                </div>
-              </div>
-            </div>
-            <span
-              className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                notifPermission === 'granted'
-                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                  : notifPermission === 'denied'
-                  ? 'bg-red-100 text-red-700 border border-red-300'
-                  : 'bg-amber-100 text-amber-700 border border-amber-300'
-              }`}
-            >
-              {notifPermission === 'granted'
-                ? 'Aktif'
-                : notifPermission === 'denied'
-                ? 'Ditolak'
-                : 'Mati'}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleRequestNotif}
-            className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm ${
-              notifPermission === 'granted'
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
-          >
-            <i className={`fa-solid ${notifPermission === 'granted' ? 'fa-bell-ring' : 'fa-check'}`}></i>
-            <span>
-              {notifPermission === 'granted'
-                ? 'Test Bunyi & Notifikasi Web'
-                : 'Izinkan Notifikasi Sekarang'}
-            </span>
-          </button>
-        </div>
-
-        {/* Feature Shortcuts Grid */}
+        {/* Feature Grid */}
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => {
               onClose();
               onOpenQr();
             }}
-            className="p-2.5 bg-blue-50 hover:bg-blue-100 rounded-2xl border border-blue-200 text-left transition flex items-center space-x-2"
+            className="p-2.5 bg-blue-50/70 hover:bg-blue-100/70 rounded-2xl border border-blue-100 text-left transition flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
               <i className="fa-solid fa-qrcode"></i>
             </div>
             <div>
-              <div className="text-[11px] font-bold text-blue-900 leading-tight">Pindai / QR PIN</div>
-              <div className="text-[9px] text-blue-600">Scan & Barcode</div>
+              <div className="text-[11px] font-bold text-blue-900 leading-tight">QR Kontak</div>
+              <div className="text-[9px] text-blue-600">Undang teman instan</div>
             </div>
           </button>
 
@@ -163,14 +118,14 @@ export const ToolsModal: React.FC<Props> = ({
               onClose();
               onOpenBroadcast();
             }}
-            className="p-2.5 bg-purple-50 hover:bg-purple-100 rounded-2xl border border-purple-200 text-left transition flex items-center space-x-2"
+            className="p-2.5 bg-purple-50/70 hover:bg-purple-100/70 rounded-2xl border border-purple-100 text-left transition flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
               <i className="fa-solid fa-tower-broadcast"></i>
             </div>
             <div>
-              <div className="text-[11px] font-bold text-purple-900 leading-tight">Pesan Siaran</div>
-              <div className="text-[9px] text-purple-600">Broadcast BC</div>
+              <div className="text-[11px] font-bold text-purple-900 leading-tight">Siaran (BC)</div>
+              <div className="text-[9px] text-purple-600">Kirim ke semua teman</div>
             </div>
           </button>
 
@@ -179,14 +134,14 @@ export const ToolsModal: React.FC<Props> = ({
               onClose();
               onOpenGroupChat();
             }}
-            className="p-2.5 bg-emerald-50 hover:bg-emerald-100 rounded-2xl border border-emerald-200 text-left transition flex items-center space-x-2"
+            className="p-2.5 bg-emerald-50/70 hover:bg-emerald-100/70 rounded-2xl border border-emerald-100 text-left transition flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
               <i className="fa-solid fa-users"></i>
             </div>
             <div>
               <div className="text-[11px] font-bold text-emerald-900 leading-tight">Grup Baru</div>
-              <div className="text-[9px] text-emerald-600">Obrolan grup</div>
+              <div className="text-[9px] text-emerald-600">Buat ruang grup</div>
             </div>
           </button>
 
@@ -195,14 +150,14 @@ export const ToolsModal: React.FC<Props> = ({
               onClose();
               onOpenSoundModal();
             }}
-            className="p-2.5 bg-amber-50 hover:bg-amber-100 rounded-2xl border border-amber-200 text-left transition flex items-center space-x-2"
+            className="p-2.5 bg-amber-50/70 hover:bg-amber-100/70 rounded-2xl border border-amber-100 text-left transition flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
-              <i className="fa-solid fa-volume-high"></i>
+              <i className="fa-solid fa-bell"></i>
             </div>
             <div>
               <div className="text-[11px] font-bold text-amber-900 leading-tight">Nada Dering</div>
-              <div className="text-[9px] text-amber-600">Suara Ping & Alert</div>
+              <div className="text-[9px] text-amber-600">Suara notifikasi</div>
             </div>
           </button>
 
@@ -211,30 +166,14 @@ export const ToolsModal: React.FC<Props> = ({
               onClose();
               onOpenNowPlaying();
             }}
-            className="p-2.5 bg-pink-50 hover:bg-pink-100 rounded-2xl border border-pink-200 text-left transition flex items-center space-x-2"
+            className="p-2.5 bg-pink-50/70 hover:bg-pink-100/70 rounded-2xl border border-pink-100 text-left transition flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-xl bg-pink-500 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
               <i className="fa-solid fa-music"></i>
             </div>
             <div>
-              <div className="text-[11px] font-bold text-pink-900 leading-tight">Status Musik</div>
-              <div className="text-[9px] text-pink-600">Now Playing song</div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              onClose();
-              onOpenAvatarPicker();
-            }}
-            className="p-2.5 bg-indigo-50 hover:bg-indigo-100 rounded-2xl border border-indigo-200 text-left transition flex items-center space-x-2"
-          >
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
-              <i className="fa-solid fa-image-portrait"></i>
-            </div>
-            <div>
-              <div className="text-[11px] font-bold text-indigo-900 leading-tight">Avatar Retro</div>
-              <div className="text-[9px] text-indigo-600">Ganti foto profil</div>
+              <div className="text-[11px] font-bold text-pink-900 leading-tight">Status Lagu</div>
+              <div className="text-[9px] text-pink-600">Now playing music</div>
             </div>
           </button>
 
@@ -243,55 +182,90 @@ export const ToolsModal: React.FC<Props> = ({
               onClose();
               onOpenPasscodeSetup();
             }}
-            className="p-2.5 bg-cyan-50 hover:bg-cyan-100 rounded-2xl border border-cyan-200 text-left transition flex items-center space-x-2"
+            className="p-2.5 bg-cyan-50/70 hover:bg-cyan-100/70 rounded-2xl border border-cyan-100 text-left transition flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-xl bg-cyan-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
               <i className="fa-solid fa-lock"></i>
             </div>
             <div>
-              <div className="text-[11px] font-bold text-cyan-900 leading-tight">Kunci Sandi</div>
+              <div className="text-[11px] font-bold text-cyan-900 leading-tight">Kunci PIN</div>
               <div className="text-[9px] text-cyan-600">
                 {hasPasscode ? 'Aktif (4-Digit)' : 'Belum aktif'}
               </div>
             </div>
           </button>
-
-          <button
-            onClick={() => {
-              onClose();
-              onOpenStats();
-            }}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-2xl border border-slate-300 text-left transition flex items-center space-x-2"
-          >
-            <div className="w-8 h-8 rounded-xl bg-slate-700 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
-              <i className="fa-solid fa-chart-pie"></i>
-            </div>
-            <div>
-              <div className="text-[11px] font-bold text-slate-800 leading-tight">Statistik</div>
-              <div className="text-[9px] text-slate-500">Aktivitas Chatzz</div>
-            </div>
-          </button>
         </div>
 
-        {/* Theme Color Switcher */}
+        {/* Automatic Online Status Toggle */}
+        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div className="pr-2">
+              <span className="text-xs font-bold text-slate-800 block">
+                Indikator Aktif Otomatis
+              </span>
+              <span className="text-[10px] text-slate-500 leading-tight block mt-0.5">
+                {shareOnlineStatus
+                  ? 'Menampilkan status online saat Anda membuka web dan offline saat menutup tab'
+                  : 'Status online dan terakhir dilihat dinonaktifkan (Privasi)'}
+              </span>
+            </div>
+            {onToggleShareOnlineStatus && (
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={shareOnlineStatus}
+                  onChange={(e) => onToggleShareOnlineStatus(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            )}
+          </div>
+        </div>
+
+        {/* Web Notification Card */}
+        <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold text-slate-800">Notifikasi Pesan Web</div>
+              <div className="text-[10px] text-slate-500">
+                {notifPermission === 'granted'
+                  ? 'Aktif: Muncul saat web ditutup'
+                  : 'Belum diizinkan'}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRequestNotif}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              {notifPermission === 'granted' ? 'Uji Suara' : 'Izinkan'}
+            </button>
+          </div>
+        </div>
+
+        {/* Modern App Themes */}
         <div>
-          <label className="text-[10px] font-bold text-slate-500 block mb-1.5">
-            PILIH TEMA JELLY (WARNA SKIN)
+          <label className="text-[11px] font-bold text-slate-700 block mb-2">
+            PILIH TEMA APLIKASI
           </label>
-          <div className="grid grid-cols-1 gap-1.5">
-            {themes.map((t) => (
+          <div className="space-y-1.5">
+            {modernThemes.map((t) => (
               <button
                 key={t.id}
                 onClick={() => onSelectTheme(t.id)}
-                className={`flex items-center justify-between p-2 rounded-xl border text-xs font-semibold transition ${
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition text-left ${
                   currentTheme === t.id
                     ? 'border-blue-500 bg-blue-50 text-blue-900 shadow-sm'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <span className={`w-3.5 h-3.5 rounded-full ${t.color} shadow-sm`}></span>
-                  <span>{t.label}</span>
+                <div className="flex items-center space-x-2.5">
+                  <span className={`w-3.5 h-3.5 rounded-full ${t.color} shadow-sm shrink-0`}></span>
+                  <div>
+                    <div className="text-xs font-bold leading-tight">{t.label}</div>
+                    <div className="text-[10px] text-slate-400 font-normal">{t.desc}</div>
+                  </div>
                 </div>
                 {currentTheme === t.id && (
                   <i className="fa-solid fa-check text-blue-600 text-xs"></i>
@@ -301,34 +275,30 @@ export const ToolsModal: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Cache & Backup & Debug */}
-        <div className="pt-2 border-t flex flex-col gap-2">
-          <div className="flex space-x-2">
-            <button
-              onClick={onExportBackup}
-              className="flex-1 btn-jelly py-2 rounded-xl text-xs font-bold"
-            >
-              Export Backup JSON
-            </button>
-            <button
-              onClick={onClearCache}
-              className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-xl text-xs font-bold"
-            >
-              Bersihkan Cache
-            </button>
-          </div>
+        {/* Backup & Clear Data */}
+        <div className="pt-2 border-t border-slate-100 flex items-center space-x-2">
+          <button
+            onClick={onExportBackup}
+            className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+          >
+            Cadangkan Data
+          </button>
           {onOpenDebug && (
             <button
-              onClick={() => {
-                onClose();
-                onOpenDebug();
-              }}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5"
+              onClick={onOpenDebug}
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition flex items-center space-x-1"
+              title="Log Aktivitas Jaringan"
             >
-              <i className="fa-solid fa-terminal text-[9px]"></i>
-              <span>Buka Log Konsol / Hook Center</span>
+              <i className="fa-solid fa-list-check text-xs"></i>
+              <span>Log</span>
             </button>
           )}
+          <button
+            onClick={onClearCache}
+            className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition"
+          >
+            Hapus Cache
+          </button>
         </div>
       </div>
     </div>

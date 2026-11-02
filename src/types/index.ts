@@ -1,6 +1,11 @@
-export type Presence = 'online' | 'away' | 'busy';
+export type Presence = 'online' | 'offline' | 'away' | 'busy' | 'hidden';
 
 export type AppTheme =
+  | 'telegram-blue'
+  | 'whatsapp-emerald'
+  | 'telegram-dark'
+  | 'ios-slate'
+  | 'sakura-blush'
   | 'aero-blue'
   | 'blackberry-purple'
   | 'matrix-emerald'
@@ -23,14 +28,25 @@ export interface Contact {
   lastActivity?: number;
   isBlocked?: boolean;
   isPinned?: boolean;
+  isArchived?: boolean;
+  isMuted?: boolean;
   avatarUrl?: string;
   nowPlaying?: string;
   unreadCount?: number;
   lastSeen?: number;
+  isOnline?: boolean;
   isTyping?: boolean;
 }
 
+export interface MessageReply {
+  text: string;
+  sender: string;
+  senderName?: string;
+  timestamp?: number;
+}
+
 export interface Message {
+  id?: string;
   sender: string;
   senderName?: string;
   groupId?: string;
@@ -40,6 +56,9 @@ export interface Message {
   isPing?: boolean;
   isBroadcast?: boolean;
   isStarred?: boolean;
+  isEdited?: boolean;
+  editedAt?: number;
+  replyTo?: MessageReply;
   audioDuration?: number;
   caption?: string;
   deletedForEveryone?: boolean;
@@ -55,14 +74,20 @@ export interface GroupRoom {
   avatar?: string;
   creatorPin?: string;
   description?: string;
+  isPinned?: boolean;
+  isArchived?: boolean;
+  isMuted?: boolean;
 }
 
 export interface Story {
+  id?: string;
   sender: string;
   senderName: string;
   text: string;
+  mediaUrl?: string;
   timestamp: number;
   expiresAt: number;
+  views?: number;
 }
 
 export interface ScheduledMessage {

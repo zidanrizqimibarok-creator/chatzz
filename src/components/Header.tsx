@@ -2,6 +2,7 @@ import React from 'react';
 
 interface Props {
   pin: string;
+  isOnline?: boolean;
   onCopyPin: () => void;
   onOpenQr: () => void;
   onOpenBroadcast: () => void;
@@ -13,6 +14,7 @@ interface Props {
 
 export const Header: React.FC<Props> = ({
   pin,
+  isOnline = true,
   onCopyPin,
   onOpenQr,
   onOpenBroadcast,
@@ -22,75 +24,103 @@ export const Header: React.FC<Props> = ({
   onOpenProfile,
 }) => {
   return (
-    <div className="jelly-header p-2.5 flex items-center justify-between text-white shadow-md relative z-20">
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-300 to-blue-600 border-2 border-white/80 flex items-center justify-center font-black text-xs shadow-md">
-          zZ
+    <header className="h-14 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/60 px-4 flex items-center justify-between text-white shadow-sm relative z-30 select-none">
+      {/* Brand & User PIN */}
+      <div className="flex items-center space-x-3">
+        <div className="relative">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center font-bold text-white text-sm shadow-sm ring-2 ring-white/10">
+            zZ
+          </div>
+          <span
+            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${
+              isOnline ? 'bg-emerald-400' : 'bg-slate-400'
+            }`}
+            title={isOnline ? 'Online' : 'Offline'}
+          />
         </div>
+
         <div>
-          <h2 className="font-bold text-xs leading-none tracking-wide text-white drop-shadow">
-            Chatzz Messenger
-          </h2>
-          <div className="flex items-center space-x-1.5 mt-0.5">
+          <div className="flex items-center gap-1.5">
+            <h1 className="font-bold text-sm tracking-tight text-white leading-none">
+              Chatzz
+            </h1>
+            <span className="text-[10px] text-sky-400 font-medium">Messenger</span>
+          </div>
+
+          <div className="flex items-center gap-2 mt-0.5">
             <button
               onClick={onCopyPin}
-              className="text-[9px] text-yellow-300 font-mono font-bold cursor-pointer hover:underline block text-left"
-              title="Klik untuk Salin PIN"
+              className="text-[11px] font-mono text-slate-300 hover:text-white transition flex items-center gap-1 group cursor-pointer"
+              title="Salin Chatzz ID / PIN"
             >
-              PIN: {pin || '--------'}
-            </button>
-            <button
-              onClick={onOpenQr}
-              className="text-[8px] bg-white/20 hover:bg-white/30 text-white px-1.5 py-0.2 rounded font-sans border border-white/30 flex items-center gap-0.5"
-              title="Buka Barcode QR PIN"
-            >
-              <i className="fa-solid fa-qrcode text-[8px]"></i>
-              <span>QR</span>
+              <span className="text-slate-400 text-[10px]">ID:</span>
+              <span className="font-semibold text-sky-300 group-hover:underline">{pin || '--------'}</span>
+              <i className="fa-regular fa-copy text-[9px] text-slate-400 group-hover:text-sky-300"></i>
             </button>
           </div>
         </div>
       </div>
-      <div className="flex items-center space-x-1">
+
+      {/* Modern Top Actions */}
+      <div className="flex items-center space-x-1 sm:space-x-1.5">
+        {/* QR Code */}
         <button
-          onClick={onOpenBroadcast}
-          className="btn-purple-jelly px-2 py-1 rounded-lg text-xs flex items-center gap-1 shadow"
-          title="Kirim Pesan Siaran (BC)"
+          onClick={onOpenQr}
+          className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-1 text-xs"
+          title="Kode QR Kontak & Undangan"
         >
-          <i className="fa-solid fa-tower-broadcast text-[9px]"></i>
-          <span className="text-[9px] font-bold">BC</span>
+          <i className="fa-solid fa-qrcode text-sm"></i>
+          <span className="hidden md:inline text-xs font-medium">QR</span>
         </button>
-        <button
-          onClick={onOpenGlobal}
-          className="btn-jelly px-2 py-1 rounded-lg text-xs flex items-center gap-1 shadow"
-          title="Obrolan Global Publik"
-        >
-          <i className="fa-solid fa-earth-asia text-[9px]"></i>
-          <span className="text-[9px] font-bold">Global</span>
-        </button>
+
+        {/* Stories / Status */}
         <button
           onClick={onOpenStory}
-          className="btn-jelly px-2 py-1 rounded-lg text-xs flex items-center gap-1 shadow"
-          title="Status 23 Jam"
+          className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-1 text-xs relative"
+          title="Status Cerita (24 Jam)"
         >
-          <i className="fa-solid fa-clock-rotate-left text-[9px]"></i>
-          <span className="text-[9px] font-bold">Status</span>
+          <i className="fa-solid fa-circle-notch text-sm text-sky-400"></i>
+          <span className="hidden md:inline text-xs font-medium">Status</span>
         </button>
+
+        {/* Broadcast */}
+        <button
+          onClick={onOpenBroadcast}
+          className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-1 text-xs"
+          title="Pesan Siaran (Broadcast)"
+        >
+          <i className="fa-solid fa-tower-broadcast text-sm text-purple-400"></i>
+          <span className="hidden md:inline text-xs font-medium">Siaran</span>
+        </button>
+
+        {/* Public Global Room */}
+        <button
+          onClick={onOpenGlobal}
+          className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-1 text-xs"
+          title="Ruang Obrolan Publik"
+        >
+          <i className="fa-solid fa-earth-asia text-sm text-emerald-400"></i>
+          <span className="hidden md:inline text-xs font-medium">Publik</span>
+        </button>
+
+        {/* Tools & Settings */}
         <button
           onClick={onOpenTools}
-          className="btn-jelly px-2 py-1 rounded-lg text-xs flex items-center gap-1 shadow"
-          title="Tools & Pengaturan"
+          className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-1 text-xs"
+          title="Pengaturan & Fitur"
         >
-          <i className="fa-solid fa-toolbox text-[9px]"></i>
-          <span className="text-[9px] font-bold">Tools</span>
+          <i className="fa-solid fa-gear text-sm"></i>
         </button>
+
+        {/* Profile */}
         <button
           onClick={onOpenProfile}
-          className="w-7 h-7 rounded-lg bg-blue-700/80 hover:bg-blue-600 border border-white/50 flex items-center justify-center shadow"
-          title="Profil"
+          className="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 flex items-center justify-center text-slate-200 hover:text-white transition shadow-sm"
+          title="Profil Saya"
         >
-          <i className="fa-solid fa-user-gear text-[10px]"></i>
+          <i className="fa-solid fa-user text-xs"></i>
         </button>
       </div>
-    </div>
+    </header>
   );
 };

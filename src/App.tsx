@@ -76,7 +76,21 @@ export default function App() {
     return (localStorage.getItem('chatzz_user_presence') as Presence) || 'online';
   });
   const [theme, setTheme] = useState<AppTheme>(() => {
-    return (localStorage.getItem('chatzz_app_theme') as AppTheme) || 'aero-blue';
+    const saved = localStorage.getItem('chatzz_app_theme') as AppTheme;
+    if (
+      saved &&
+      (saved === 'telegram-blue' ||
+        saved === 'whatsapp-emerald' ||
+        saved === 'telegram-dark' ||
+        saved === 'ios-slate' ||
+        saved === 'sakura-blush')
+    ) {
+      return saved;
+    }
+    return 'telegram-blue';
+  });
+  const [shareOnlineStatus, setShareOnlineStatus] = useState<boolean>(() => {
+    return localStorage.getItem('chatzz_share_online') !== 'false';
   });
   const [avatarId, setAvatarId] = useState<string>(() => {
     return localStorage.getItem('chatzz_avatar_id') || 'robot';
@@ -196,6 +210,69 @@ export default function App() {
   useEffect(() => {
     requestNotificationPermission();
   }, []);
+
+  // Check URL query for ?addPin=... to automatically add contact when opening invite links
+  useEffect(() => {
+    if (typeof window === 'undefined' || !myPin) return;
+    try {
+      const search = new URLSearchParams(window.location.search);
+      const addPin = search.get('addPin');
+      if (addPin && addPin.toUpperCase() !== myPin) {
+        const cleanPin = addPin.toUpperCase().trim();
+        handleAddContact(cleanPin);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+  }, [myPin]);
+
+  // Automatic Online & Last Seen Presence Tracking
+  useEffect(() => {
+    if (!myPin) return;
+
+    const broadcastPresence = (isOnline: boolean) => {
+      const status: Presence = !shareOnlineStatus ? 'hidden' : isOnline ? 'online' : 'offline';
+      setMyPresence(status);
+
+      const payload = {
+        type: 'PRESENCE_UPDATE',
+        sender: myPin,
+        pin: myPin,
+        name: myName,
+        status,
+        lastSeen: Date.now(),
+        timestamp: Date.now(),
+      };
+
+      if (mqttClientRef.current?.connected) {
+        mqttClientRef.current.publish(`chatzz/presence/${myPin}`, JSON.stringify(payload), {
+          qos: 1,
+          retain: true,
+        });
+      }
+      sendFirebaseDirectMessage(`presence_${myPin}`, payload);
+    };
+
+    const handleVisibility = () => {
+      broadcastPresence(document.visibilityState === 'visible');
+    };
+
+    const handleFocus = () => broadcastPresence(true);
+    const handleBlur = () => broadcastPresence(false);
+
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    // Initial broadcast
+    broadcastPresence(document.visibilityState === 'visible');
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+      broadcastPresence(false);
+    };
+  }, [myPin, myName, shareOnlineStatus]);
 
   // Theme Setter
   const handleSelectTheme = (newTheme: AppTheme) => {
@@ -522,6 +599,41 @@ export default function App() {
         return;
       }
 
+      if (data.type === 'PRESENCE_UPDATE') {
+        const senderPin = data.sender || data.pin;
+        if (senderPin && senderPin !== myPin) {
+          const isOnline = data.status === 'online';
+          setContacts((prev) =>
+            prev.map((c) =>
+              c.pin === senderPin
+                ? {
+                    ...c,
+                    isOnline,
+                    lastSeen: data.lastSeen || Date.now(),
+                  }
+                : c
+            )
+          );
+        }
+        return;
+      }
+
+      if (data.type === 'EDIT_MSG') {
+        const partnerPin = data.sender;
+        const storageKey = `chatzz_msg_${[myPin, partnerPin].sort().join('_')}`;
+        let msgs: Message[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        msgs = msgs.map((m) =>
+          m.timestamp === data.messageTimestamp
+            ? { ...m, text: data.newText, isEdited: true, editedAt: Date.now() }
+            : m
+        );
+        localStorage.setItem(storageKey, JSON.stringify(msgs));
+        if (activeContactPin === partnerPin) {
+          setActiveMessages(msgs);
+        }
+        return;
+      }
+
       if (data.type === 'STORY_SHARE') {
         try {
           const recStories: Story[] = JSON.parse(
@@ -587,6 +699,7 @@ export default function App() {
             sender: partnerPin,
             text: data.text || 'PING!!!',
             caption: data.caption,
+            replyTo: data.replyTo,
             time: data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             timestamp: data.timestamp || now,
             isPing: data.type === 'PING',
@@ -904,8 +1017,8 @@ export default function App() {
 
     client.on('connect', () => {
       setMqttStatus('connected');
-      setMqttStatusText('Connected (WSS 8084)');
-      pushLog('MQTT Connected to EMQX WSS Port 8084');
+      setMqttStatusText('Terhubung ke Jaringan Chatzz');
+      pushLog('Jaringan Chatzz Terhubung Aman (Online)');
 
       // Subscribe to personal inbox and multi-level persistent mailbox
       client.subscribe(`chatzz/user/${myPin}/inbox`, { qos: 1 });
@@ -1170,13 +1283,15 @@ export default function App() {
   };
 
   // Save Profile
-  const handleSaveProfile = (name: string, status: string, presence: Presence) => {
+  const handleSaveProfile = (name: string, status: string, presence: Presence, shareOnline: boolean = true) => {
     setMyName(name);
     setMyStatus(status);
     setMyPresence(presence);
+    setShareOnlineStatus(shareOnline);
     localStorage.setItem('chatzz_user_name', name);
     localStorage.setItem('chatzz_user_status', status);
     localStorage.setItem('chatzz_user_presence', presence);
+    localStorage.setItem('chatzz_share_online', shareOnline ? 'true' : 'false');
     setIsProfileModalOpen(false);
   };
 
@@ -1560,8 +1675,13 @@ export default function App() {
     localStorage.setItem('chatzz_user_contacts', JSON.stringify(updated));
   };
 
-  // Send Message
-  const handleSendMessage = (text: string, isBroadcast = false, caption?: string) => {
+  // Send Message (supports replies & quotes)
+  const handleSendMessage = (
+    text: string,
+    isBroadcast = false,
+    caption?: string,
+    replyTo?: any
+  ) => {
     if (!activeContactPin) return;
     const now = Date.now();
     const timeStr = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1576,6 +1696,7 @@ export default function App() {
       senderName: myName,
       text,
       caption,
+      replyTo,
       time: timeStr,
       timestamp: now,
       isBroadcast,
@@ -1587,6 +1708,7 @@ export default function App() {
       sender: myPin,
       text,
       caption,
+      replyTo,
       time: timeStr,
       timestamp: now,
       isPing: false,
@@ -1596,7 +1718,6 @@ export default function App() {
     msgs.push(newMsg);
     localStorage.setItem(storageKey, JSON.stringify(msgs));
     setActiveMessages((prev) => [...prev, newMsg]);
-
     if (!isBlocked && mqttClientRef.current?.connected) {
       mqttClientRef.current.publish(`chatzz/user/${activeContactPin}/inbox`, JSON.stringify(payload), {
         qos: 1,
@@ -1636,6 +1757,32 @@ export default function App() {
       setContacts(updated);
       localStorage.setItem('chatzz_user_contacts', JSON.stringify(updated));
     }
+  };
+
+  // Edit Sent Message
+  const handleEditMessage = (timestamp: number, newText: string) => {
+    if (!activeContactPin) return;
+    const storageKey = `chatzz_msg_${[myPin, activeContactPin].sort().join('_')}`;
+    let msgs: Message[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    msgs = msgs.map((m) =>
+      m.timestamp === timestamp ? { ...m, text: newText, isEdited: true, editedAt: Date.now() } : m
+    );
+    localStorage.setItem(storageKey, JSON.stringify(msgs));
+    setActiveMessages(msgs);
+
+    const payload = {
+      type: 'EDIT_MSG',
+      sender: myPin,
+      messageTimestamp: timestamp,
+      newText,
+    };
+    if (mqttClientRef.current?.connected) {
+      mqttClientRef.current.publish(`chatzz/user/${activeContactPin}/inbox`, JSON.stringify(payload), {
+        qos: 1,
+      });
+    }
+    sendFirebaseDirectMessage(activeContactPin, payload);
+    showToast('Pesan Diperbarui', 'Pesan berhasil diedit.');
   };
 
   // Delete message for everyone (Unsend)
@@ -2074,8 +2221,6 @@ export default function App() {
 
   return (
     <>
-      <div className="chatzz-bg-watermark">chatzz.com</div>
-
       {/* App Passcode Lock Screen */}
       {isAppLocked && (
         <PasscodeModal
@@ -2109,8 +2254,8 @@ export default function App() {
       )}
 
       <div
-        id="jelly-app"
-        className={`jelly-window theme-${theme} ${isShaking ? 'shake-active' : ''}`}
+        id="chatzz-app"
+        className={`app-window theme-${theme} ${isShaking ? 'shake-active' : ''}`}
       >
         {/* Persistent Shutdown / Maintenance Overlay */}
         <MaintenanceOverlay isOpen={isMaintenance} />
@@ -2121,6 +2266,7 @@ export default function App() {
         {/* Window Header */}
         <Header
           pin={myPin}
+          isOnline={shareOnlineStatus ? myPresence === 'online' : false}
           onCopyPin={handleCopyMyPin}
           onOpenQr={() => setIsQrScannerOpen(true)}
           onOpenBroadcast={() => setIsBroadcastModalOpen(true)}
@@ -2173,6 +2319,7 @@ export default function App() {
               onStartVoiceCall={handleStartVoiceCall}
               onSendPing={handleSendPing}
               onSendMessage={handleSendMessage}
+              onEditMessage={handleEditMessage}
               onToggleStar={handleToggleStar}
               onToggleReaction={handleToggleReaction}
               onDeleteMessageForEveryone={handleDeleteMessageForEveryone}
@@ -2255,6 +2402,7 @@ export default function App() {
         currentName={myName}
         currentStatus={myStatus}
         currentPresence={myPresence}
+        shareOnlineStatus={shareOnlineStatus}
         onClose={() => setIsProfileModalOpen(false)}
         onSave={handleSaveProfile}
       />
@@ -2275,8 +2423,13 @@ export default function App() {
         isOpen={isToolsModalOpen}
         currentTheme={theme}
         hasPasscode={!!passcode}
+        shareOnlineStatus={shareOnlineStatus}
         onClose={() => setIsToolsModalOpen(false)}
         onSelectTheme={handleSelectTheme}
+        onToggleShareOnlineStatus={(val) => {
+          setShareOnlineStatus(val);
+          localStorage.setItem('chatzz_share_online', val ? 'true' : 'false');
+        }}
         onOpenBroadcast={() => setIsBroadcastModalOpen(true)}
         onOpenQr={() => setIsQrScannerOpen(true)}
         onOpenGroupChat={() => setIsGroupModalOpen(true)}

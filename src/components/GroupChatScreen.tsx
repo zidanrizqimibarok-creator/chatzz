@@ -353,39 +353,36 @@ export const GroupChatScreen: React.FC<Props> = ({
   return (
     <div className="absolute inset-0 bg-[#e6edf5] flex flex-col z-20">
       {/* 1. Header Bar */}
-      <div className="chatzz-header px-3 py-2 flex items-center justify-between text-white shrink-0 shadow-md">
+      <div className="h-14 bg-white border-b border-slate-200 px-3 flex items-center justify-between shadow-xs z-20 select-none">
         <div className="flex items-center space-x-2 overflow-hidden">
           {/* Back button */}
           <button
             onClick={onBack}
-            className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition border border-white/20 shrink-0"
+            className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-600 flex items-center justify-center transition shrink-0"
             title="Kembali ke Daftar Percakapan"
           >
-            <i className="fa-solid fa-chevron-left text-xs"></i>
+            <i className="fa-solid fa-arrow-left text-sm"></i>
           </button>
 
           {/* Group Avatar & Info Clicker */}
           <div
             onClick={() => setIsGroupInfoOpen(true)}
-            className="flex items-center space-x-2 cursor-pointer group truncate"
+            className="flex items-center space-x-2.5 cursor-pointer group truncate"
             title="Klik untuk lihat anggota & info grup"
           >
-            <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-600 border border-white/40 shadow-inner flex items-center justify-center text-white text-sm font-bold">
-                <i className="fa-solid fa-users"></i>
-              </div>
-              <span className="status-gem gem-green absolute bottom-0 right-0 border border-white"></span>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+              <i className="fa-solid fa-users"></i>
             </div>
 
             <div className="truncate">
-              <h3 className="font-bold text-xs leading-tight truncate flex items-center gap-1.5 text-white drop-shadow-sm">
+              <h3 className="font-bold text-xs leading-tight truncate flex items-center gap-1.5 text-slate-900">
                 <span>{group.name}</span>
-                <i className="fa-solid fa-circle-info text-[10px] text-emerald-200 group-hover:text-white transition"></i>
+                <i className="fa-solid fa-circle-info text-[10px] text-slate-400 group-hover:text-blue-600 transition"></i>
               </h3>
-              <p className="text-[9px] text-emerald-100/90 truncate flex items-center gap-1">
+              <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
                 <span>{group.members.length} Anggota</span>
                 <span>•</span>
-                <span className="hover:underline">Buka Info</span>
+                <span className="hover:underline text-blue-600 font-medium">Lihat Info</span>
               </p>
             </div>
           </div>
@@ -396,52 +393,38 @@ export const GroupChatScreen: React.FC<Props> = ({
           {/* Group PING */}
           <button
             onClick={onSendPing}
-            className="px-2 py-1 bg-red-500 hover:bg-red-600 active:scale-95 text-white rounded-lg text-[10px] font-bold shadow-sm transition border border-red-300 flex items-center gap-1 animate-pulse"
+            className="w-8 h-8 rounded-full hover:bg-red-50 text-slate-600 hover:text-red-600 flex items-center justify-center transition"
             title="Kirim PING! ke semua anggota grup"
           >
-            <i className="fa-solid fa-bell text-[9px]"></i>
-            <span>PING!</span>
+            <i className="fa-solid fa-bell text-xs"></i>
           </button>
 
           {/* Search Toggle */}
           <button
             onClick={() => setShowSearch(!showSearch)}
-            className={`w-7 h-7 rounded-lg flex items-center justify-center transition border ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
               showSearch
-                ? 'bg-amber-400 text-slate-900 border-amber-300 font-bold'
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                ? 'bg-blue-100 text-blue-600 font-bold'
+                : 'hover:bg-slate-100 text-slate-600'
             }`}
             title="Cari pesan dalam grup"
           >
-            <i className="fa-solid fa-magnifying-glass text-[10px]"></i>
-          </button>
-
-          {/* Starred Filter */}
-          <button
-            onClick={() => setShowStarredOnly(!showStarredOnly)}
-            className={`w-7 h-7 rounded-lg flex items-center justify-center transition border ${
-              showStarredOnly
-                ? 'bg-amber-400 text-slate-900 border-amber-300'
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-            }`}
-            title="Filter pesan berbintang"
-          >
-            <i className="fa-solid fa-star text-[10px]"></i>
+            <i className="fa-solid fa-magnifying-glass text-xs"></i>
           </button>
 
           {/* Wallpaper Picker */}
           <button
             onClick={() => setIsWallpaperModalOpen(true)}
-            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/20"
+            className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-600 hover:text-blue-600 flex items-center justify-center transition"
             title="Ganti Tema Wallpaper Grup"
           >
-            <i className="fa-solid fa-image text-[10px]"></i>
+            <i className="fa-solid fa-image text-xs"></i>
           </button>
 
           {/* Group Info */}
           <button
             onClick={() => setIsGroupInfoOpen(true)}
-            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/20"
+            className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-600 hover:text-blue-600 flex items-center justify-center transition"
             title="Pengaturan Anggota & Info Grup"
           >
             <i className="fa-solid fa-ellipsis-vertical text-xs"></i>
@@ -847,11 +830,10 @@ export const GroupChatScreen: React.FC<Props> = ({
         {/* Send Button */}
         <button
           onClick={handleSend}
-          className="btn-jelly px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow flex items-center gap-1 active:scale-95 transition"
+          className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm active:scale-95 transition shrink-0"
           title="Kirim Pesan"
         >
-          <span>Kirim</span>
-          <i className="fa-solid fa-paper-plane text-[10px]"></i>
+          <i className="fa-solid fa-paper-plane text-xs ml-0.5"></i>
         </button>
       </div>
 
