@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    background-color: #040814;
+    background-image: 
+        radial-gradient(circle at 50% 25%, rgba(20, 90, 210, 0.4) 0%, rgba(3, 6, 18, 0.98) 75%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.25) 3px);
+    font-family: 'Tahoma', 'Segoe UI', Geneva, sans-serif;
+    user-select: none;
+    overflow: hidden;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chatzz-bg-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg);
+    font-size: 11vw;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.025);
+    letter-spacing: 10px;
+    pointer-events: none;
+    z-index: 0;
+    white-space: nowrap;
+    text-transform: lowercase;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.jelly-window {
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(180deg, #e8f2ff 0%, #c4dbfc 50%, #b0cef9 51%, #d0e4fd 100%);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.jelly-header {
+    background: linear-gradient(180deg, #4a8ae6 0%, #2562be 49%, #15459c 50%, #2865c2 100%);
+    border-bottom: 2px solid #0c2c62;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(0,0,0,0.3);
+    text-shadow: 0 -1px 1px rgba(0,0,0,0.6);
+}
+
+.theme-blackberry-purple .jelly-header {
+    background: linear-gradient(180deg, #a855f7 0%, #7e22ce 49%, #581c87 50%, #6b21a8 100%);
+    border-bottom: 2px solid #3b0764;
+}
+
+.theme-matrix-emerald .jelly-header {
+    background: linear-gradient(180deg, #10b981 0%, #059669 49%, #047857 50%, #065f46 100%);
+    border-bottom: 2px solid #064e3b;
+}
+
+.theme-crimson-ruby .jelly-header {
+    background: linear-gradient(180deg, #f43f5e 0%, #e11d48 49%, #be123c 50%, #9f1239 100%);
+    border-bottom: 2px solid #881337;
+}
+
+.theme-obsidian-dark .jelly-header {
+    background: linear-gradient(180deg, #475569 0%, #334155 49%, #1e293b 50%, #0f172a 100%);
+    border-bottom: 2px solid #020617;
+}
+
+.btn-jelly {
+    background: linear-gradient(180deg, #6ac0ff 0%, #1c80f0 49%, #005ae0 50%, #1a7cfc 100%);
+    border: 1px solid #003380;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 3px 6px rgba(0,0,0,0.35);
+    text-shadow: 0 -1px 1px rgba(0,0,0,0.5);
+    color: white;
+    font-weight: bold;
+    transition: all 0.08s ease;
+}
+.btn-jelly:active {
+    background: linear-gradient(180deg, #0047b3 0%, #1c80f0 100%);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+    transform: translateY(1px);
+}
+
+.btn-purple-jelly {
+    background: linear-gradient(180deg, #c084fc 0%, #9333ea 49%, #7e22ce 50%, #a855f7 100%);
+    border: 1px solid #581c87;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 3px 6px rgba(0,0,0,0.35);
+    text-shadow: 0 -1px 1px rgba(0,0,0,0.5);
+    color: white;
+    font-weight: bold;
+}
+
+.btn-danger-jelly {
+    background: linear-gradient(180deg, #ff8a8a 0%, #e63946 49%, #b7091c 50%, #ea1d3e 100%);
+    border: 1px solid #5a040b;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 3px 6px rgba(0,0,0,0.35);
+    text-shadow: 0 -1px 1px rgba(0,0,0,0.6);
+    color: white;
+    font-weight: bold;
+}
+
+.btn-success-jelly {
+    background: linear-gradient(180deg, #5eead4 0%, #14b8a6 49%, #0f766e 50%, #2dd4bf 100%);
+    border: 1px solid #134e4a;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 3px 6px rgba(0,0,0,0.35);
+    text-shadow: 0 -1px 1px rgba(0,0,0,0.6);
+    color: white;
+    font-weight: bold;
+}
+
+.inset-panel {
+    background: #ffffff;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.18), inset -1px -1px 2px rgba(255,255,255,0.95);
+    border: 1px solid #7c9cc4;
+}
+
+.status-gem {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: inset -1px -1px 2px rgba(0,0,0,0.5), inset 1px 1px 2px rgba(255,255,255,0.95);
+}
+.gem-online { background: radial-gradient(circle at 35% 35%, #4ade80, #15803d); }
+.gem-away { background: radial-gradient(circle at 35% 35%, #facc15, #ca8a04); }
+.gem-busy { background: radial-gradient(circle at 35% 35%, #f87171, #b91c1c); }
+
+@keyframes pingShake {
+    0% { transform: translate(2px, 2px) rotate(0deg); }
+    10% { transform: translate(-3px, -4px) rotate(-1deg); }
+    30% { transform: translate(4px, 3px) rotate(1deg); }
+    50% { transform: translate(-2px, 4px) rotate(-1deg); }
+    70% { transform: translate(4px, 2px) rotate(0deg); }
+    90% { transform: translate(-3px, 3px) rotate(1deg); }
+    100% { transform: translate(2px, -2px) rotate(0deg); }
+}
+.shake-active { animation: pingShake 0.45s ease-in-out infinite; }
+
+@keyframes pulseRecord {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.75; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.animate-record { animation: pulseRecord 1s infinite ease-in-out; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.03); }
+::-webkit-scrollbar-thumb { background: #4a90e2; border-radius: 4px; }
