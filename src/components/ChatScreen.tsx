@@ -5,6 +5,7 @@ import { ReactionPicker } from './ReactionPicker';
 import { PhotoCaptionModal } from './Modals/PhotoCaptionModal';
 import { WallpaperModal, WALLPAPER_PRESETS } from './Modals/WallpaperModal';
 import { DeleteMessageModal } from './Modals/DeleteMessageModal';
+import { compressImageFile } from '../utils/imageCompressor';
 
 interface Props {
   myPin: string;
@@ -172,18 +173,24 @@ export const ChatScreen: React.FC<Props> = ({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const base64Img = uploadEvent.target?.result as string;
-      if (base64Img) {
-        setPendingImageSrc(base64Img);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Compress and optimize camera photos and gallery pictures so they don't get truncated by broker
+      const compressedDataUrl = await compressImageFile(file);
+      setPendingImageSrc(compressedDataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const base64Img = uploadEvent.target?.result as string;
+        if (base64Img) {
+          setPendingImageSrc(base64Img);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = '';
   };
 

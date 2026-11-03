@@ -8,6 +8,7 @@ interface Props {
   onOpenBroadcast: () => void;
   onOpenGlobal: () => void;
   onOpenStory: () => void;
+  onOpenRandomChat?: () => void;
   onOpenTools: () => void;
   onOpenProfile: () => void;
 }
@@ -20,6 +21,7 @@ export const Header: React.FC<Props> = ({
   onOpenBroadcast,
   onOpenGlobal,
   onOpenStory,
+  onOpenRandomChat,
   onOpenTools,
   onOpenProfile,
 }) => {
@@ -92,6 +94,18 @@ export const Header: React.FC<Props> = ({
           <i className="fa-solid fa-tower-broadcast text-sm text-purple-400"></i>
           <span className="hidden md:inline text-xs font-medium">Siaran</span>
         </button>
+
+        {/* Random Anonymous Match */}
+        {onOpenRandomChat && (
+          <button
+            onClick={onOpenRandomChat}
+            className="p-2 rounded-xl text-amber-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-1 text-xs"
+            title="Temu Teman Random (Anonymous Chat)"
+          >
+            <i className="fa-solid fa-shuffle text-sm text-amber-400"></i>
+            <span className="hidden lg:inline text-xs font-medium">Random</span>
+          </button>
+        )}
 
         {/* Public Global Room */}
         <button

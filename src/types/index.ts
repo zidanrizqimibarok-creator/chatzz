@@ -88,6 +88,17 @@ export interface Story {
   timestamp: number;
   expiresAt: number;
   views?: number;
+  excludedPins?: string[]; // Contacts who cannot view this story
+}
+
+export interface RandomChatMessage {
+  id: string;
+  senderPin: string;
+  senderAlias: string;
+  text: string;
+  time: string;
+  timestamp: number;
+  isSystem?: boolean;
 }
 
 export interface ScheduledMessage {

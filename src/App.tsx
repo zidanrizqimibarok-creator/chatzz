@@ -19,6 +19,7 @@ import { ContactsScreen } from './components/ContactsScreen';
 import { ChatScreen } from './components/ChatScreen';
 import { GroupChatScreen } from './components/GroupChatScreen';
 import { GlobalChatScreen } from './components/GlobalChatScreen';
+import { RandomChatScreen } from './components/RandomChatScreen';
 import { showWebNotification, startTitleBlink, requestNotificationPermission } from './utils/webNotification';
 import {
   sendFirebaseDirectMessage,
@@ -148,6 +149,7 @@ export default function App() {
   const [activeGroup, setActiveGroup] = useState<GroupRoom | null>(null);
   const [activeGroupMessages, setActiveGroupMessages] = useState<Message[]>([]);
   const [isGlobalOpen, setIsGlobalOpen] = useState<boolean>(false);
+  const [isRandomChatOpen, setIsRandomChatOpen] = useState<boolean>(false);
   const [isPartnerTyping, setIsPartnerTyping] = useState<boolean>(false);
 
   // Modals Visibility
@@ -325,12 +327,16 @@ export default function App() {
         localStorage.getItem('chatzz_received_stories') || '[]'
       );
       const now = Date.now();
-      const valid = [...myStories, ...receivedStories].filter((s) => s.expiresAt > now);
+      const valid = [...myStories, ...receivedStories].filter((s) => {
+        if (s.expiresAt <= now) return false;
+        if (s.sender !== myPin && s.excludedPins && s.excludedPins.includes(myPin)) return false;
+        return true;
+      });
       setStories(valid);
     } catch {
       setStories([]);
     }
-  }, []);
+  }, [myPin]);
 
   useEffect(() => {
     loadStories();
@@ -1027,6 +1033,7 @@ export default function App() {
       client.subscribe('chatzz/presence/+', { qos: 1 });
       client.subscribe('chatzz/center/control/broadcast', { qos: 0 });
       client.subscribe(`chatzz/center/control/${myPin}`, { qos: 0 });
+      client.subscribe('chatzz/public/global_lounge', { qos: 0 });
 
       // Wildcard group room listener & specific groups
       client.subscribe('chatzz/group/+/room', { qos: 1 });
@@ -1123,6 +1130,19 @@ export default function App() {
               }
             } catch {}
           }
+          return;
+        }
+
+        if (topic === 'chatzz/public/global_lounge') {
+          try {
+            const recGlobal = JSON.parse(
+              localStorage.getItem('chatzz_global_messages') || '[]'
+            );
+            if (!recGlobal.some((m: any) => m.id === data.id)) {
+              recGlobal.push(data);
+              localStorage.setItem('chatzz_global_messages', JSON.stringify(recGlobal.slice(-100)));
+            }
+          } catch {}
           return;
         }
 
@@ -1243,6 +1263,15 @@ export default function App() {
     localStorage.setItem('chatzz_user_contacts', JSON.stringify(updated));
     setIsAddModalOpen(false);
     showToast('Kontak Ditambahkan', `PIN ${pin} disimpan.`);
+  };
+
+  // Add Contact from Random Anonymous Chat
+  const handleAddContactFromRandom = (newContact: Contact) => {
+    if (newContact.pin === myPin) return;
+    if (contacts.some((c) => c.pin === newContact.pin)) return;
+    const updated = [...contacts, newContact];
+    setContacts(updated);
+    localStorage.setItem('chatzz_user_contacts', JSON.stringify(updated));
   };
 
   // Delete Contact
@@ -2039,24 +2068,31 @@ export default function App() {
   };
 
   // Publish Story
-  const handlePublishStory = (text: string) => {
+  const handlePublishStory = (text: string, excludedPins?: string[]) => {
     const now = Date.now();
     const storyObj: Story = {
       sender: myPin,
       senderName: myName,
       text,
       timestamp: now,
-      expiresAt: now + 23 * 60 * 60 * 1000,
+      expiresAt: now + 24 * 60 * 60 * 1000,
+      excludedPins: excludedPins || [],
     };
     const myStories: Story[] = JSON.parse(localStorage.getItem('chatzz_my_stories') || '[]');
     myStories.push(storyObj);
     localStorage.setItem('chatzz_my_stories', JSON.stringify(myStories));
     setIsStoryModalOpen(false);
     loadStories();
-    showToast('Status Diposting', 'Status aktif 23 jam.');
+    showToast(
+      'Status Diposting',
+      excludedPins && excludedPins.length > 0
+        ? `Status aktif 24 jam (${excludedPins.length} kontak dikecualikan).`
+        : 'Status aktif 24 jam.'
+    );
 
     if (mqttClientRef.current?.connected) {
       contacts.forEach((c) => {
+        if (excludedPins && excludedPins.includes(c.pin)) return;
         mqttClientRef.current?.publish(
           `chatzz/user/${c.pin}/inbox`,
           JSON.stringify({ type: 'STORY_SHARE', ...storyObj }),
@@ -2272,104 +2308,182 @@ export default function App() {
           onOpenBroadcast={() => setIsBroadcastModalOpen(true)}
           onOpenGlobal={() => setIsGlobalOpen(true)}
           onOpenStory={() => setIsStoryModalOpen(true)}
+          onOpenRandomChat={() => setIsRandomChatOpen(true)}
           onOpenTools={() => setIsToolsModalOpen(true)}
           onOpenProfile={() => setIsProfileModalOpen(true)}
         />
 
-        {/* Main Content Area */}
-        <div className="flex-1 overflow-hidden relative flex flex-col">
-          {/* Screen: Contacts List (with top search, pinned contacts, avatar, now playing, and groups) */}
-          <ContactsScreen
-            myPin={myPin}
-            name={myName}
-            statusText={myStatus}
-            presence={myPresence}
-            avatarId={avatarId}
-            nowPlaying={nowPlaying}
-            stories={stories}
-            contacts={contacts}
-            groups={groups}
-            onOpenProfile={() => setIsProfileModalOpen(true)}
-            onOpenAvatarPicker={() => setIsAvatarPickerOpen(true)}
-            onOpenNowPlaying={() => setIsNowPlayingModalOpen(true)}
-            onOpenQr={() => setIsQrScannerOpen(true)}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
-            onOpenBroadcast={() => setIsBroadcastModalOpen(true)}
-            onOpenCreateGroup={() => setIsGroupModalOpen(true)}
-            onSelectContact={handleSelectContact}
-            onSelectGroup={handleSelectGroup}
-            onDeleteContact={handleDeleteContact}
-            onTogglePinContact={handleTogglePinContact}
-            onEditNickname={(pin, current) => setEditingContact({ pin, current })}
-            onViewStory={(s) => setViewingStory(s)}
-          />
-
-          {/* Screen: Private Chat (mutually exclusive with group chat) */}
-          {activeContact && !activeGroup && (
-            <ChatScreen
+        {/* Main Content Area: Responsive Split / Full-Screen View */}
+        <div className="flex-1 overflow-hidden relative flex flex-row">
+          {/* Left Pane: Contacts List */}
+          <div
+            className={`${
+              activeContact || activeGroup ? 'hidden md:flex' : 'flex'
+            } w-full md:w-80 lg:w-96 flex-col border-r border-slate-200/80 bg-white shrink-0 h-full relative overflow-hidden`}
+          >
+            <ContactsScreen
               myPin={myPin}
-              contact={activeContact}
-              messages={activeMessages}
-              isPartnerTyping={isPartnerTyping}
-              onBack={() => {
-                setActiveContactPin(null);
-                setIsPartnerTyping(false);
-              }}
-              onToggleBlock={handleToggleBlock}
-              onStartVoiceCall={handleStartVoiceCall}
-              onSendPing={handleSendPing}
-              onSendMessage={handleSendMessage}
-              onEditMessage={handleEditMessage}
-              onToggleStar={handleToggleStar}
-              onToggleReaction={handleToggleReaction}
-              onDeleteMessageForEveryone={handleDeleteMessageForEveryone}
-              onDeleteMessageForMe={handleDeleteMessageForMe}
-              onSendTypingStatus={handleSendTypingStatus}
-              onOpenSchedule={() => setIsScheduleModalOpen(true)}
-              onOpenImage={(src) => setPreviewImage(src)}
-              onShowToast={showToast}
+              name={myName}
+              statusText={myStatus}
+              presence={myPresence}
+              avatarId={avatarId}
+              nowPlaying={nowPlaying}
+              stories={stories}
+              contacts={contacts}
+              groups={groups}
+              onOpenProfile={() => setIsProfileModalOpen(true)}
+              onOpenAvatarPicker={() => setIsAvatarPickerOpen(true)}
+              onOpenNowPlaying={() => setIsNowPlayingModalOpen(true)}
+              onOpenQr={() => setIsQrScannerOpen(true)}
+              onOpenAddModal={() => setIsAddModalOpen(true)}
+              onOpenBroadcast={() => setIsBroadcastModalOpen(true)}
+              onOpenCreateGroup={() => setIsGroupModalOpen(true)}
+              onOpenRandomChat={() => setIsRandomChatOpen(true)}
+              onOpenStoryModal={() => setIsStoryModalOpen(true)}
+              onSelectContact={handleSelectContact}
+              onSelectGroup={handleSelectGroup}
+              onDeleteContact={handleDeleteContact}
+              onTogglePinContact={handleTogglePinContact}
+              onEditNickname={(pin, current) => setEditingContact({ pin, current })}
+              onViewStory={(s) => setViewingStory(s)}
             />
-          )}
+          </div>
 
-          {/* Screen: Group Chat */}
-          {activeGroup && (
-            <GroupChatScreen
+          {/* Right Pane: Active Chat Screen or Group Chat Screen or Desktop Welcome Placeholder */}
+          <div
+            className={`${
+              !activeContact && !activeGroup ? 'hidden md:flex' : 'flex'
+            } flex-1 flex-col h-full relative overflow-hidden bg-slate-50`}
+          >
+            {/* Screen: Private Chat */}
+            {activeContact && !activeGroup && (
+              <ChatScreen
+                myPin={myPin}
+                contact={activeContact}
+                messages={activeMessages}
+                isPartnerTyping={isPartnerTyping}
+                onBack={() => {
+                  setActiveContactPin(null);
+                  setIsPartnerTyping(false);
+                }}
+                onToggleBlock={handleToggleBlock}
+                onStartVoiceCall={handleStartVoiceCall}
+                onSendPing={handleSendPing}
+                onSendMessage={handleSendMessage}
+                onEditMessage={handleEditMessage}
+                onToggleStar={handleToggleStar}
+                onToggleReaction={handleToggleReaction}
+                onDeleteMessageForEveryone={handleDeleteMessageForEveryone}
+                onDeleteMessageForMe={handleDeleteMessageForMe}
+                onSendTypingStatus={handleSendTypingStatus}
+                onOpenSchedule={() => setIsScheduleModalOpen(true)}
+                onOpenImage={(src) => setPreviewImage(src)}
+                onShowToast={showToast}
+              />
+            )}
+
+            {/* Screen: Group Chat */}
+            {activeGroup && (
+              <GroupChatScreen
+                myPin={myPin}
+                myName={myName}
+                group={activeGroup}
+                contacts={contacts}
+                messages={activeGroupMessages}
+                onBack={() => {
+                  setActiveGroup(null);
+                  setActiveGroupMessages([]);
+                }}
+                onSendMessage={handleSendGroupMessage}
+                onSendPing={handleSendGroupPing}
+                onToggleStar={handleGroupToggleStar}
+                onToggleReaction={handleGroupToggleReaction}
+                onDeleteMessageForMe={handleGroupDeleteMessageForMe}
+                onClearGroupHistory={handleClearGroupHistory}
+                onUpdateGroupName={handleUpdateGroupName}
+                onAddMembers={handleAddMembersToGroup}
+                onRemoveMember={handleRemoveMemberFromGroup}
+                onLeaveGroup={handleLeaveGroup}
+                onSelectDirectContact={(c) => {
+                  setActiveGroup(null);
+                  setActiveGroupMessages([]);
+                  handleSelectContact(c);
+                }}
+                onOpenImage={(src) => setPreviewImage(src)}
+                onShowToast={showToast}
+                onCopyPin={(pin) => {
+                  navigator.clipboard.writeText(pin).then(() => {
+                    showToast('PIN Disalin', `PIN ${pin} disalin.`);
+                  });
+                }}
+              />
+            )}
+
+            {/* Desktop Empty State (when no conversation is selected) */}
+            {!activeContact && !activeGroup && (
+              <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-slate-50 select-none">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-sky-400/20 via-blue-500/20 to-purple-500/20 border border-blue-200/60 flex items-center justify-center text-blue-600 mb-4 shadow-sm">
+                  <i className="fa-regular fa-comments text-3xl"></i>
+                </div>
+                <h3 className="font-bold text-slate-800 text-lg mb-1">Chatzz Messenger</h3>
+                <p className="text-xs text-slate-500 max-w-sm leading-relaxed mb-4">
+                  Pilih kontak di sebelah kiri untuk mulai mengobrol, kirim foto kamera & galeri jernih, pesan suara, atau coba fitur Teman Random untuk mengobrol secara anonim.
+                </p>
+                <button
+                  onClick={() => setIsRandomChatOpen(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
+                >
+                  <i className="fa-solid fa-shuffle"></i>
+                  <span>Temu Teman Random</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Screen: Global Chat (Live & Open) */}
+          {isGlobalOpen && (
+            <GlobalChatScreen
               myPin={myPin}
               myName={myName}
-              group={activeGroup}
-              contacts={contacts}
-              messages={activeGroupMessages}
-              onBack={() => {
-                setActiveGroup(null);
-                setActiveGroupMessages([]);
+              onClose={() => setIsGlobalOpen(false)}
+              onSelectDirectPin={(pin) => {
+                setIsGlobalOpen(false);
+                const existing = contacts.find((c) => c.pin === pin);
+                if (existing) {
+                  handleSelectContact(existing);
+                } else {
+                  handleAddContact(pin);
+                }
               }}
-              onSendMessage={handleSendGroupMessage}
-              onSendPing={handleSendGroupPing}
-              onToggleStar={handleGroupToggleStar}
-              onToggleReaction={handleGroupToggleReaction}
-              onDeleteMessageForMe={handleGroupDeleteMessageForMe}
-              onClearGroupHistory={handleClearGroupHistory}
-              onUpdateGroupName={handleUpdateGroupName}
-              onAddMembers={handleAddMembersToGroup}
-              onRemoveMember={handleRemoveMemberFromGroup}
-              onLeaveGroup={handleLeaveGroup}
-              onSelectDirectContact={(c) => {
-                setActiveGroup(null);
-                setActiveGroupMessages([]);
-                handleSelectContact(c);
-              }}
-              onOpenImage={(src) => setPreviewImage(src)}
-              onShowToast={showToast}
-              onCopyPin={(pin) => {
-                navigator.clipboard.writeText(pin).then(() => {
-                  showToast('PIN Disalin', `PIN ${pin} disalin.`);
-                });
+              onSendGlobalMessage={(text) => {
+                if (mqttClientRef.current?.connected) {
+                  mqttClientRef.current.publish(
+                    'chatzz/public/global_lounge',
+                    JSON.stringify({
+                      id: `gm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                      senderPin: myPin,
+                      senderName: myName,
+                      text,
+                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      timestamp: Date.now(),
+                    }),
+                    { qos: 0 }
+                  );
+                }
               }}
             />
           )}
 
-          {/* Screen: Global Chat (Closed) */}
-          {isGlobalOpen && <GlobalChatScreen onClose={() => setIsGlobalOpen(false)} />}
+          {/* Screen: Random Anonymous Match */}
+          {isRandomChatOpen && (
+            <RandomChatScreen
+              myPin={myPin}
+              myName={myName}
+              onClose={() => setIsRandomChatOpen(false)}
+              onAddContactFromRandom={handleAddContactFromRandom}
+              onShowToast={showToast}
+            />
+          )}
         </div>
       </div>
 
@@ -2409,6 +2523,7 @@ export default function App() {
 
       <StoryModal
         isOpen={isStoryModalOpen}
+        contacts={contacts}
         onClose={() => setIsStoryModalOpen(false)}
         onPublishStory={handlePublishStory}
       />
