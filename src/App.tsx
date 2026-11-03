@@ -715,7 +715,7 @@ export default function App() {
           msgs.push(newMsg);
           localStorage.setItem(storageKey, JSON.stringify(msgs));
 
-          if (activeContactPin === partnerPin) {
+          if (stateRef.current.activeContactPin === partnerPin || activeContactPin === partnerPin) {
             setActiveMessages((prev) => [...prev, newMsg]);
             sendReadACK(partnerPin);
           }

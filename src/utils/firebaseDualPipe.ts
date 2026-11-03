@@ -3,6 +3,7 @@ import {
   getDatabase,
   ref,
   push,
+  get,
   onChildAdded,
   remove,
   set,
@@ -33,6 +34,12 @@ try {
   console.warn('[Firebase] Initialization error:', err);
 }
 
+// Strip undefined values that cause Firebase Realtime Database to reject push/set
+function cleanPayload(data: any): any {
+  if (data === undefined) return null;
+  return JSON.parse(JSON.stringify(data));
+}
+
 /**
  * Send a message via Firebase Realtime Database mailbox
  * Acts as a dual pipe alongside MQTT for offline durability
@@ -40,9 +47,10 @@ try {
 export async function sendFirebaseDirectMessage(targetPin: string, payload: any): Promise<boolean> {
   if (!firebaseDbInstance || !targetPin) return false;
   try {
+    const clean = cleanPayload(payload);
     const mailboxRef = ref(firebaseDbInstance, `chatzz/mailboxes/${targetPin}`);
     await push(mailboxRef, {
-      ...payload,
+      ...clean,
       _pipe: 'firebase',
       _queuedAt: Date.now(),
     });
@@ -59,9 +67,10 @@ export async function sendFirebaseDirectMessage(targetPin: string, payload: any)
 export async function sendFirebaseGroupMessage(groupId: string, payload: any): Promise<boolean> {
   if (!firebaseDbInstance || !groupId) return false;
   try {
+    const clean = cleanPayload(payload);
     const groupRef = ref(firebaseDbInstance, `chatzz/groups/${groupId}/messages`);
     await push(groupRef, {
-      ...payload,
+      ...clean,
       _pipe: 'firebase',
       _queuedAt: Date.now(),
     });
@@ -83,6 +92,23 @@ export function listenFirebaseInbox(
   if (!firebaseDbInstance || !myPin) return () => {};
 
   const mailboxRef = ref(firebaseDbInstance, `chatzz/mailboxes/${myPin}`);
+
+  // Initial immediate fetch for messages that arrived while offline
+  get(mailboxRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      snapshot.forEach((child) => {
+        const val = child.val();
+        if (val) {
+          onMessageReceived(val);
+          try {
+            remove(child.ref);
+          } catch {}
+        }
+      });
+    }
+  }).catch((err) => {
+    console.warn('[Firebase] Initial inbox fetch error:', err);
+  });
 
   const unsubscribe = onChildAdded(
     mailboxRef,

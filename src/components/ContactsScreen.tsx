@@ -417,41 +417,36 @@ export const ContactsScreen: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Swipe-Up Handle Bar for Gelembung Status / Stories */}
+      {/* Compact Swipe-Up Pill for Gelembung Status */}
       <div
         onClick={() => setIsStoriesDrawerOpen(true)}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="px-3 py-2 bg-gradient-to-r from-sky-50 via-purple-50 to-pink-50 hover:from-sky-100 hover:to-pink-100 border-t border-purple-100/80 flex items-center justify-between cursor-pointer group transition select-none shrink-0"
+        className="py-1.5 px-3 bg-gradient-to-r from-sky-50 via-purple-50 to-pink-50 hover:from-purple-100/60 hover:to-pink-100/60 border-t border-purple-100/80 flex items-center justify-center gap-2 cursor-pointer group transition select-none shrink-0"
         title="Geser atau klik untuk membuka Gelembung Status Cerita"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-pink-500 animate-ping"></div>
-          <span className="text-[11px] font-bold text-slate-700 group-hover:text-purple-700 flex items-center gap-1.5 transition">
-            <i className="fa-solid fa-chevron-up text-[10px] text-purple-600 group-hover:-translate-y-0.5 transition-transform"></i>
-            <span>Geser ke atas untuk melihat Status Cerita</span>
-          </span>
-        </div>
-        <span className="text-[10px] text-purple-600 font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-purple-200">
-          {stories.length} Status
+        <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping"></div>
+        <span className="text-[10px] font-bold text-slate-700 group-hover:text-purple-700 flex items-center gap-1 transition">
+          <i className="fa-solid fa-chevron-up text-[9px] text-purple-600 group-hover:-translate-y-0.5 transition-transform"></i>
+          <span>Status Cerita ({stories.length})</span>
         </span>
       </div>
 
-      {/* Modern Action Bar (New Group, Random Chat, New Chat) */}
-      <div className="p-2.5 border-t border-slate-100 bg-white flex items-center gap-2 shrink-0">
+      {/* Modern Bottom Action Bar */}
+      <div className="p-2 border-t border-slate-100 bg-white flex items-center gap-2 shrink-0">
         <button
           onClick={onOpenCreateGroup}
-          className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 shrink-0"
+          className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 shrink-0"
           title="Buat Grup Obrolan Baru"
         >
           <i className="fa-solid fa-users text-emerald-600 text-xs"></i>
-          <span className="hidden sm:inline">Grup</span>
+          <span>Grup</span>
         </button>
 
         {onOpenRandomChat && (
           <button
             onClick={onOpenRandomChat}
-            className="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5"
             title="Temu Teman Random (Anonymous Chat)"
           >
             <i className="fa-solid fa-shuffle text-xs"></i>
@@ -461,7 +456,7 @@ export const ContactsScreen: React.FC<Props> = ({
 
         <button
           onClick={onOpenAddModal}
-          className="py-2 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0"
+          className="py-2 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 shrink-0"
           title="Tambah Kontak Baru via PIN"
         >
           <i className="fa-solid fa-plus text-xs"></i>

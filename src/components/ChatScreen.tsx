@@ -65,6 +65,7 @@ export const ChatScreen: React.FC<Props> = ({
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [fontSize, setFontSize] = useState<ChatFontSize>('sm');
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   // Reply & Edit State (WhatsApp & Telegram style)
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
@@ -754,38 +755,62 @@ export const ChatScreen: React.FC<Props> = ({
             </div>
           </div>
         ) : (
-          <>
-            {/* Quick Replies Toggle */}
+          <div className="relative flex items-center gap-1.5 w-full">
+            {/* Attachment Menu Popup */}
+            {showAttachMenu && (
+              <div className="absolute bottom-12 left-0 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-30 min-w-[170px] animate-fade-in select-none">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    fileInputRef.current?.click();
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-semibold hover:bg-slate-50 rounded-xl flex items-center gap-2 text-slate-700 transition"
+                >
+                  <i className="fa-solid fa-image text-emerald-600 text-sm w-4"></i>
+                  <span>Kirim Foto</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    setShowQuickReplies(!showQuickReplies);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-semibold hover:bg-slate-50 rounded-xl flex items-center gap-2 text-slate-700 transition"
+                >
+                  <i className="fa-solid fa-bolt text-purple-600 text-sm w-4"></i>
+                  <span>Balasan Cepat</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    onOpenSchedule();
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-semibold hover:bg-slate-50 rounded-xl flex items-center gap-2 text-slate-700 transition"
+                >
+                  <i className="fa-regular fa-clock text-blue-600 text-sm w-4"></i>
+                  <span>Jadwalkan Pesan</span>
+                </button>
+              </div>
+            )}
+
+            {/* Plus / Attachment Button */}
             <button
               type="button"
-              onClick={() => setShowQuickReplies(!showQuickReplies)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
-                showQuickReplies ? 'bg-purple-100 text-purple-700' : 'text-slate-500 hover:bg-slate-100'
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition shrink-0 ${
+                showAttachMenu
+                  ? 'bg-blue-100 text-blue-700 rotate-45'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
               }`}
-              title="Balasan Kilat"
+              title="Lampiran & Fitur"
             >
-              <i className="fa-solid fa-bolt text-xs"></i>
+              <i className="fa-solid fa-plus text-sm transition-transform"></i>
             </button>
 
-            {/* Emoticon */}
-            <button
-              type="button"
-              onClick={() => setIsEmoticonOpen(!isEmoticonOpen)}
-              className="w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-amber-500 flex items-center justify-center transition"
-              title="Emoji"
-            >
-              <i className="fa-regular fa-face-smile text-base"></i>
-            </button>
-
-            {/* Image / Camera Attachment */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-emerald-600 flex items-center justify-center transition"
-              title="Kirim Foto"
-            >
-              <i className="fa-solid fa-image text-sm"></i>
-            </button>
             <input
               type="file"
               ref={fileInputRef}
@@ -794,14 +819,14 @@ export const ChatScreen: React.FC<Props> = ({
               onChange={handleFileChange}
             />
 
-            {/* Schedule Message */}
+            {/* Emoticon */}
             <button
               type="button"
-              onClick={onOpenSchedule}
-              className="w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-600 flex items-center justify-center transition"
-              title="Jadwalkan Pesan"
+              onClick={() => setIsEmoticonOpen(!isEmoticonOpen)}
+              className="w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-amber-500 flex items-center justify-center transition shrink-0"
+              title="Emoji"
             >
-              <i className="fa-regular fa-clock text-sm"></i>
+              <i className="fa-regular fa-face-smile text-base"></i>
             </button>
 
             {/* Main Modern Input Field */}
@@ -811,29 +836,30 @@ export const ChatScreen: React.FC<Props> = ({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="flex-1 bg-slate-100 hover:bg-slate-150 focus:bg-white border border-transparent focus:border-blue-500 px-4 py-2 rounded-2xl text-xs outline-none font-sans transition placeholder:text-slate-400"
+              className="flex-1 min-w-0 bg-slate-100 hover:bg-slate-150 focus:bg-white border border-transparent focus:border-blue-500 px-4 py-2 rounded-2xl text-xs outline-none font-sans transition placeholder:text-slate-400"
             />
 
-            {/* Voice Note Record */}
-            <button
-              type="button"
-              onClick={startRecording}
-              className="w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-600 flex items-center justify-center transition"
-              title="Rekam Pesan Suara"
-            >
-              <i className="fa-solid fa-microphone text-sm"></i>
-            </button>
-
-            {/* Send Button */}
-            <button
-              type="button"
-              onClick={handleSend}
-              className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center shadow-sm transition"
-              title="Kirim Pesan"
-            >
-              <i className="fa-solid fa-paper-plane text-xs ml-0.5"></i>
-            </button>
-          </>
+            {/* Dynamic Action Button: Send if has text, Mic if empty */}
+            {inputText.trim() ? (
+              <button
+                type="button"
+                onClick={handleSend}
+                className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center shadow-sm transition shrink-0"
+                title="Kirim Pesan"
+              >
+                <i className="fa-solid fa-paper-plane text-xs ml-0.5"></i>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startRecording}
+                className="w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-600 flex items-center justify-center transition shrink-0"
+                title="Rekam Pesan Suara"
+              >
+                <i className="fa-solid fa-microphone text-sm"></i>
+              </button>
+            )}
+          </div>
         )}
       </div>
 
